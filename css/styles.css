@@ -186,16 +186,10 @@ table {
 }
 /* Three message view container */
 #three-message-container {
-    display: none; /* Hidden by default */
-    gap: 5px;
-    margin-bottom: 20px;
-}
-#three-message-container.active {
     display: grid;
     grid-template-columns: 3fr 5fr 4fr;
-}
-#single-message-view.inactive {
-    display: none;
+    gap: 5px;
+    margin-bottom: 20px;
 }
 .message-box {
     border: 2px solid #ccc;
@@ -617,12 +611,6 @@ blockquote {
 /* Bootstrap overrides and integrations */
 .form-select {
     min-width: 180px;
-}
-
-/* Ensure Bootstrap doesn't break our existing layout */
-#three-message-container.active {
-    display: grid !important;
-    grid-template-columns: 3fr 5fr 4fr;
 }
 
 /* Button styling consistency */

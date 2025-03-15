@@ -1,6 +1,6 @@
 .specstory
-claude-json
-claude-specstory
+claude-json/*
+claude-specstory/*
 transcripts-json/*
 
 # Mac OS

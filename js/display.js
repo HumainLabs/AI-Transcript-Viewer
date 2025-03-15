@@ -195,17 +195,8 @@ function displayMessage(index) {
         role = message.role;
     }
     
-    // Generate HTML for message
-    const messageHTML = generateMessageHTML(message);
-    
-    // Decide where to display based on view mode
-    if (isSingleView) {
-        // If in single view, display in the main container
-        messageContainer.innerHTML = messageHTML;
-    } else {
-        // If in three-message view, update all three containers
-        updateThreeMessageView();
-    }
+    // Update all three containers in the three-message view
+    updateThreeMessageView();
     
     // Display metadata for the response message (n+1)
     displayMetadata();
@@ -327,7 +318,7 @@ function findNextUserMessageIndex(currentIndex) {
         const message = messageList[i];
         const role = message.author?.role || message.role;
         
-        if (role === 'user') {
+        if (role === 'user' || role === 'human') {
             return i;
         }
     }
@@ -343,7 +334,7 @@ function findPreviousUserMessageIndex(currentIndex) {
         const message = messageList[i];
         const role = message.author?.role || message.role;
         
-        if (role === 'user') {
+        if (role === 'user' || role === 'human') {
             return i;
         }
     }

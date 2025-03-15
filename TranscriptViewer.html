@@ -39,7 +39,6 @@
             <button id="copy-starred-btn" class="btn btn-outline-primary btn-sm ms-2" title="Copy all starred messages"><i class="fas fa-copy"></i></button> 
             <button id="search-btn" class="btn btn-outline-primary btn-sm ms-2" title="Search Transcript"><i class="fas fa-search"></i></button> 
             <button id="goto-message-btn" class="btn btn-outline-secondary btn-sm ms-2" title="Go to Message Number"><i class="fas fa-circle-right"></i></button> 
-            <button id="view-toggle-btn" class="btn btn-outline-info btn-sm ms-2" title="Toggle View Mode"><i class="fas fa-columns"></i></button>
         </div>
     </div>
     
@@ -75,31 +74,35 @@
         </div>
     </div>
     
-    <!-- Single message view container -->
-    <div id="single-message-view">
-        <div id="message-container">
-            <p>No transcript loaded. Please select a file above.</p>
-        </div>
+    <!-- Search result display -->
+    <div class="search-results" id="search-results" style="display: none;">
+        <div id="search-status">Loading search results...</div>
+        <div id="search-results-container"></div>
     </div>
     
-    <!-- Three message view container -->
-    <div id="three-message-container">
-        <div class="message-box previous">
-            <div class="message-box-label">User</div>
-            <div id="previous-message-container">
-                <p>No current message</p>
+    <!-- Main content area -->
+    <div id="main-content-area">
+        <!-- Removed: Single message view container -->
+        
+        <!-- Three message view container -->
+        <div id="three-message-container">
+            <div class="message-box previous">
+                <div class="message-box-label">User</div>
+                <div id="previous-message-container">
+                    <p>No current message</p>
+                </div>
             </div>
-        </div>
-        <div class="message-box current">
-            <div class="message-box-label">Assistant</div>
-            <div id="current-message-container">
-                <p>No next message</p>
+            <div class="message-box current">
+                <div class="message-box-label">Assistant</div>
+                <div id="current-message-container">
+                    <p>No next message</p>
+                </div>
             </div>
-        </div>
-        <div class="message-box next">
-            <div class="message-box-label">Following</div>
-            <div id="next-message-container">
-                <p>No following message</p>
+            <div class="message-box next">
+                <div class="message-box-label">Following</div>
+                <div id="next-message-container">
+                    <p>No following message</p>
+                </div>
             </div>
         </div>
     </div>

@@ -2,7 +2,6 @@
 let transcript = null;
 let messageList = [];
 let currentMessageIndex = 0;
-let isSingleView = false; // Default to three-message view
 let totalTokenCount = 0;
 let detectedModel = 'unknown'; // Track which model the transcript is from
 
@@ -18,8 +17,6 @@ const currentIndexSpan = document.getElementById('current-index');
 const totalMessagesSpan = document.getElementById('total-messages');
 const tokenStatsSpan = document.getElementById('token-stats');
 const metadataContainer = document.getElementById('metadata-container');
-const viewToggleBtn = document.getElementById('view-toggle-btn');
-const singleMessageView = document.getElementById('single-message-view');
 const threeMessageContainer = document.getElementById('three-message-container');
 const gotoMessageBtn = document.getElementById('goto-message-btn');
 
@@ -35,20 +32,14 @@ function initializeUI() {
     prevBtn.textContent = "Previous User Message (←)";
     nextBtn.textContent = "Next User Message (→)";
     
-    // Initialize the view state
-    if (!isSingleView) {
-        singleMessageView.classList.add('inactive');
-        threeMessageContainer.classList.add('active');
-    }
+    // Initialize the view state - always use three-pane view
+    threeMessageContainer.classList.add('active');
 }
 
 // Set up event listeners
 function setupEventListeners() {
     // File input change handler
     fileInput.addEventListener('change', handleFileSelection);
-    
-    // View toggle
-    viewToggleBtn.addEventListener('click', toggleView);
     
     // Navigation buttons
     prevBtn.addEventListener('click', () => navigateByOneMessage('prev'));
@@ -157,21 +148,6 @@ function handleFileSelection(event) {
     }
 }
 
-// Toggle between single view and three-message view
-function toggleView() {
-    isSingleView = !isSingleView;
-    
-    if (isSingleView) {
-        singleMessageView.classList.remove('inactive');
-        threeMessageContainer.classList.remove('active');
-    } else {
-        singleMessageView.classList.add('inactive');
-        threeMessageContainer.classList.add('active');
-        // Update all three containers
-        updateThreeMessageView();
-    }
-}
-
 // Handle keyboard navigation
 function handleKeyNavigation(event) {
     if (event.key === 'ArrowLeft') {
@@ -272,7 +248,7 @@ async function calculateTokenStats() {
                     
                     // Track tokens by role
                     const role = message.author?.role || message.role || 'unknown';
-                    if (role === 'user') {
+                    if (role === 'user' || role === 'human') {
                         userTokens += messageTokens;
                     } else if (role === 'assistant') {
                         assistantTokens += messageTokens;
