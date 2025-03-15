@@ -105,33 +105,50 @@ function isClaudeThinkingModel(message) {
     return modelName.includes('claude') && modelName.includes('thinking');
 }
 
+// Check if message is from Claude JSON format
+function isClaudeJsonMessage(message) {
+    // Check if we're in a claude-json platform transcript
+    if (transcript && transcript.platform === 'claude-json') {
+        return true;
+    }
+    return false;
+}
+
 // Extract thinking content from <think> tags in Claude messages
+// or from claude_thinking field in Claude JSON
 function extractThinkingContent(message) {
-    if (!message || !isClaudeThinkingModel(message)) {
-        return null;
+    // Handle Claude SpecStory format with <think> tags
+    if (message && isClaudeThinkingModel(message)) {
+        let content = '';
+        
+        // Get the full content
+        if (message.parts && Array.isArray(message.parts) && message.parts.length > 0) {
+            content = message.parts.join('\n');
+        } else if (typeof message.content === 'string') {
+            content = message.content;
+        } else if (message.content && message.content.parts && Array.isArray(message.content.parts)) {
+            content = message.content.parts.join('\n');
+        } else if (message.content && message.content.text) {
+            content = message.content.text;
+        }
+        
+        // Extract content inside <think> tags
+        const thinkMatches = content.match(/<think>([\s\S]*?)<\/think>/g);
+        
+        if (thinkMatches && thinkMatches.length > 0) {
+            // Extract content from all thinking tags and combine
+            return thinkMatches
+                .map(match => match.replace(/<think>|<\/think>/g, '').trim())
+                .join('\n\n');
+        }
     }
     
-    let content = '';
-    
-    // Get the full content
-    if (message.parts && Array.isArray(message.parts) && message.parts.length > 0) {
-        content = message.parts.join('\n');
-    } else if (typeof message.content === 'string') {
-        content = message.content;
-    } else if (message.content && message.content.parts && Array.isArray(message.content.parts)) {
-        content = message.content.parts.join('\n');
-    } else if (message.content && message.content.text) {
-        content = message.content.text;
-    }
-    
-    // Extract content inside <think> tags
-    const thinkMatches = content.match(/<think>([\s\S]*?)<\/think>/g);
-    
-    if (thinkMatches && thinkMatches.length > 0) {
-        // Extract content from all thinking tags and combine
-        return thinkMatches
-            .map(match => match.replace(/<think>|<\/think>/g, '').trim())
-            .join('\n\n');
+    // Handle Claude JSON format with claude_thinking field
+    if (message && isClaudeJsonMessage(message)) {
+        // In Claude JSON format, thinking content is in the claude_thinking field
+        if (message.claude_thinking) {
+            return message.claude_thinking;
+        }
     }
     
     return null;

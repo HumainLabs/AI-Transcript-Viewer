@@ -139,11 +139,11 @@ function generateMessageHTML(message, combineWithPrevious = null) {
             thinkingContent = extractMessageContent(combineWithPrevious);
             hasThinkingContent = true;
         } 
-        // Otherwise, check for Claude <think> tags
-        else if (typeof extractThinkingContent === 'function') {
-            const claudeThinking = extractThinkingContent(message);
-            if (claudeThinking) {
-                thinkingContent = claudeThinking;
+        // Otherwise, check for thinking content through the extractThinkingContent function
+        else {
+            const thinking = extractThinkingContent(message);
+            if (thinking) {
+                thinkingContent = thinking;
                 hasThinkingContent = true;
             }
         }
@@ -224,8 +224,8 @@ function displayMetadata() {
         const nextRole = nextMessage.author?.role || nextMessage.role || 'unknown';
         const nextName = nextMessage.author?.name || '';
         
-        // Check if the next message is an a8km123 thinking tool
-        if (nextRole === 'tool' && nextName === 'a8km123' && currentMessageIndex + 2 < messageList.length) {
+        // Pattern 1: Check if the next message is an a8km123 thinking tool
+        if (transcript.platform === 'chatgpt' && nextRole === 'tool' && nextName === 'a8km123' && currentMessageIndex + 2 < messageList.length) {
             // We have both a thinking message (n+1) and a response message (n+2)
             const thinkingMessage = nextMessage;
             const responseMessage = messageList[currentMessageIndex + 2];
@@ -275,37 +275,102 @@ function displayMetadata() {
                     <p>No metadata available for thinking or response message.</p>
                 </div>`;
             }
-        } else {
-            // Normal case, just show metadata for the next message
-            const metadata = getCleanMetadata(nextMessage);
+        } 
+        // Pattern 2: Assistant message first, a8km123 tool message second
+        else if (transcript.platform === 'chatgpt' && nextRole === 'assistant' && nextIndex + 1 < messageList.length) {
+            const possibleToolMessage = messageList[nextIndex + 1];
+            const toolRole = possibleToolMessage.author?.role || possibleToolMessage.role || 'unknown';
+            const toolName = possibleToolMessage.author?.name || '';
             
-            if (metadata && Object.keys(metadata).length > 0) {
-                // Create a clean version of the metadata without content.parts if it exists
-                const cleanMetadata = {...metadata};
+            if (toolRole === 'tool' && toolName === 'a8km123') {
+                // We have both an assistant message (n+1) and a thinking message (n+2)
+                const assistantMessage = nextMessage;
+                const thinkingMessage = possibleToolMessage;
                 
-                // Remove content.parts if it exists to avoid too much text
-                if (cleanMetadata.content && cleanMetadata.content.parts) {
-                    delete cleanMetadata.content.parts;
+                let metadataHTML = '';
+                
+                // First, add metadata for the assistant message
+                const assistantMetadata = getCleanMetadata(assistantMessage);
+                if (assistantMetadata && Object.keys(assistantMetadata).length > 0) {
+                    // Create a clean version of the metadata without content.parts if it exists
+                    const cleanAssistantMetadata = {...assistantMetadata};
+                    
+                    // Remove content.parts if it exists to avoid too much text
+                    if (cleanAssistantMetadata.content && cleanAssistantMetadata.content.parts) {
+                        delete cleanAssistantMetadata.content.parts;
+                    }
+                    
+                    metadataHTML += `<div class="other-metadata">
+                        <h4>Assistant Metadata</h4>
+                        <pre>${JSON.stringify(cleanAssistantMetadata, null, 2)}</pre>
+                    </div>`;
                 }
                 
-                // Create HTML with the entire metadata object as a single JSON string
-                const metadataHTML = `<div class="other-metadata">
-                    <h4>Response Metadata (${nextRole})</h4>
-                    <pre>${JSON.stringify(cleanMetadata, null, 2)}</pre>
-                </div>`;
+                // Then, add metadata for the thinking message
+                const thinkingMetadata = getCleanMetadata(thinkingMessage);
+                if (thinkingMetadata && Object.keys(thinkingMetadata).length > 0) {
+                    // Create a clean version of the metadata without content.parts if it exists
+                    const cleanThinkingMetadata = {...thinkingMetadata};
+                    
+                    // Remove content.parts if it exists to avoid too much text
+                    if (cleanThinkingMetadata.content && cleanThinkingMetadata.content.parts) {
+                        delete cleanThinkingMetadata.content.parts;
+                    }
+                    
+                    metadataHTML += `<div class="other-metadata">
+                        <h4>Thinking Metadata (${toolName})</h4>
+                        <pre>${JSON.stringify(cleanThinkingMetadata, null, 2)}</pre>
+                    </div>`;
+                }
                 
-                metadataContainer.innerHTML = metadataHTML;
+                if (metadataHTML) {
+                    metadataContainer.innerHTML = metadataHTML;
+                } else {
+                    metadataContainer.innerHTML = `<div class="other-metadata">
+                        <h4>No Metadata Available</h4>
+                        <p>No metadata available for assistant or thinking message.</p>
+                    </div>`;
+                }
             } else {
-                metadataContainer.innerHTML = `<div class="other-metadata">
-                    <h4>Response Metadata (${nextRole})</h4>
-                    <p>No additional metadata available for the response.</p>
-                </div>`;
+                // Normal case, just show metadata for the next message
+                displaySingleMessageMetadata(nextMessage, nextRole);
             }
+        } else {
+            // Normal case, just show metadata for the next message
+            displaySingleMessageMetadata(nextMessage, nextRole);
         }
     } else {
         metadataContainer.innerHTML = `<div class="other-metadata">
             <h4>Response Metadata</h4>
             <p>No response message available.</p>
+        </div>`;
+    }
+}
+
+// Helper function to display metadata for a single message
+function displaySingleMessageMetadata(message, role) {
+    const metadata = getCleanMetadata(message);
+    
+    if (metadata && Object.keys(metadata).length > 0) {
+        // Create a clean version of the metadata without content.parts if it exists
+        const cleanMetadata = {...metadata};
+        
+        // Remove content.parts if it exists to avoid too much text
+        if (cleanMetadata.content && cleanMetadata.content.parts) {
+            delete cleanMetadata.content.parts;
+        }
+        
+        // Create HTML with the entire metadata object as a single JSON string
+        const metadataHTML = `<div class="other-metadata">
+            <h4>Response Metadata (${role})</h4>
+            <pre>${JSON.stringify(cleanMetadata, null, 2)}</pre>
+        </div>`;
+        
+        metadataContainer.innerHTML = metadataHTML;
+    } else {
+        metadataContainer.innerHTML = `<div class="other-metadata">
+            <h4>Response Metadata (${role})</h4>
+            <p>No additional metadata available for the response.</p>
         </div>`;
     }
 }
@@ -413,6 +478,7 @@ function updateThreeMessageView() {
         const nextMessage = messageList[nextIndex];
         // Get role for next message
         const nextRole = nextMessage.author?.role || nextMessage.role || 'unknown';
+        const nextName = nextMessage.author?.name || '';
         
         // Add to current box
         currentBox.classList.add(`role-box-${nextRole}`);
@@ -425,40 +491,85 @@ function updateThreeMessageView() {
             currentBox.classList.add('bookmarked-message');
         }
         
-        // Handle potential a8km123 tool messages that should be combined with assistant response
+        // Handle two possible patterns for ChatGPT thinking:
+        // 1. assistant message followed by a8km123 tool message
+        // 2. a8km123 tool message followed by assistant message
+        let combinedMessage = null;
         let a8kmMessage = null;
-        if (nextRole === 'assistant' && nextIndex + 1 < messageList.length) {
-            const possibleToolMessage = messageList[nextIndex + 1];
-            const isA8kmTool = possibleToolMessage.author?.role === 'tool' && possibleToolMessage.author?.name === 'a8km123';
-            
-            if (isA8kmTool) {
-                a8kmMessage = possibleToolMessage;
+        
+        if (transcript.platform === 'chatgpt') {
+            if (nextRole === 'assistant' && nextIndex + 1 < messageList.length) {
+                // Pattern 1: assistant message followed by a8km123 tool message
+                const possibleToolMessage = messageList[nextIndex + 1];
+                const isA8kmTool = possibleToolMessage.author?.role === 'tool' && possibleToolMessage.author?.name === 'a8km123';
+                
+                if (isA8kmTool) {
+                    a8kmMessage = possibleToolMessage;
+                }
+            } else if (nextRole === 'tool' && nextName === 'a8km123' && nextIndex + 1 < messageList.length) {
+                // Pattern 2: a8km123 tool message followed by assistant message
+                const possibleAssistantMessage = messageList[nextIndex + 1];
+                const isAssistant = possibleAssistantMessage.author?.role === 'assistant' || possibleAssistantMessage.role === 'assistant';
+                
+                if (isAssistant) {
+                    // Use the assistant message as the primary message and the a8km123 as the thinking
+                    combinedMessage = possibleAssistantMessage;
+                    a8kmMessage = nextMessage; // Current a8km123 message is the thinking
+                }
             }
         }
         
-        currentMessageContainer.innerHTML = generateMessageHTML(nextMessage, a8kmMessage);
+        // If we have a combined message from pattern 2, display that
+        if (combinedMessage) {
+            currentMessageContainer.innerHTML = generateMessageHTML(combinedMessage, a8kmMessage);
+            
+            // Skip the next message in the right pane since we've incorporated it
+            const followingIndex = currentMessageIndex + 3;
+            if (followingIndex < messageList.length) {
+                const followingMessage = messageList[followingIndex];
+                const followingRole = followingMessage.author?.role || followingMessage.role || 'unknown';
+                
+                nextBox.classList.add(`role-box-${followingRole}`);
+                
+                // Check if this message is starred/bookmarked
+                if (isMessageStarred(followingIndex)) {
+                    nextBox.classList.add('starred-message');
+                }
+                if (isMessageBookmarked(followingIndex)) {
+                    nextBox.classList.add('bookmarked-message');
+                }
+                
+                nextMessageContainer.innerHTML = generateMessageHTML(followingMessage);
+            } else {
+                nextMessageContainer.innerHTML = '<p>No following message</p>';
+            }
+        } else {
+            // No combined message, display normally (including pattern 1)
+            currentMessageContainer.innerHTML = generateMessageHTML(nextMessage, a8kmMessage);
+            
+            // Handle following message (goes in next box)
+            const followingIndex = currentMessageIndex + 2;
+            if (followingIndex < messageList.length) {
+                const followingMessage = messageList[followingIndex];
+                const followingRole = followingMessage.author?.role || followingMessage.role || 'unknown';
+                
+                nextBox.classList.add(`role-box-${followingRole}`);
+                
+                // Check if this message is starred/bookmarked
+                if (isMessageStarred(followingIndex)) {
+                    nextBox.classList.add('starred-message');
+                }
+                if (isMessageBookmarked(followingIndex)) {
+                    nextBox.classList.add('bookmarked-message');
+                }
+                
+                nextMessageContainer.innerHTML = generateMessageHTML(followingMessage);
+            } else {
+                nextMessageContainer.innerHTML = '<p>No following message</p>';
+            }
+        }
     } else {
         currentMessageContainer.innerHTML = '<p>No next message</p>';
-    }
-    
-    // Handle following message (goes in next box)
-    const followingIndex = currentMessageIndex + 2;
-    if (followingIndex < messageList.length) {
-        const followingMessage = messageList[followingIndex];
-        const followingRole = followingMessage.author?.role || followingMessage.role || 'unknown';
-        
-        nextBox.classList.add(`role-box-${followingRole}`);
-        
-        // Check if this message is starred/bookmarked
-        if (isMessageStarred(followingIndex)) {
-            nextBox.classList.add('starred-message');
-        }
-        if (isMessageBookmarked(followingIndex)) {
-            nextBox.classList.add('bookmarked-message');
-        }
-        
-        nextMessageContainer.innerHTML = generateMessageHTML(followingMessage);
-    } else {
         nextMessageContainer.innerHTML = '<p>No following message</p>';
     }
     

@@ -170,13 +170,13 @@ async function loadTokenizer(modelType) {
     tokenizerLoadPromises[modelType] = (async () => {
         try {
             switch (modelType) {
-                case 'gpt':
+                case 'chatgpt':
                     // Attempt to load tiktoken if script is included
-                    console.log('Loading GPT tokenizer...');
+                    console.log('Loading ChatGPT tokenizer...');
                     
                     // Look for either tiktoken library (WASM or pure JS)
                     if (typeof tiktoken !== 'undefined') {
-                        console.log('Using tiktoken (WASM version) for GPT tokenization');
+                        console.log('Using tiktoken (WASM version) for ChatGPT tokenization');
                         
                         try {
                             // Use the GPT-3.5-Turbo/GPT-4 tokenizer (cl100k_base)
@@ -189,18 +189,14 @@ async function loadTokenizer(modelType) {
                             loadedTokenizers[modelType] = gptTokenizer;
                             return gptTokenizer;
                         } catch (tiktokenError) {
-                            console.warn('Error using tiktoken (WASM version):', tiktokenError);
-                            // Fall through to check other versions/approximation methods
+                            console.warn('Error initializing tiktoken encoding:', tiktokenError);
                         }
-                    }
-                    
-                    // Check for the js-tiktoken library (pure JS version)
-                    if (typeof jstiktoken !== 'undefined' || window.jstiktoken) {
-                        const jsLib = typeof jstiktoken !== 'undefined' ? jstiktoken : window.jstiktoken;
-                        console.log('Using js-tiktoken (pure JS version) for GPT tokenization');
+                    } else if (typeof encodingForModel !== 'undefined') {
+                        console.log('Using tiktoken.js for ChatGPT tokenization');
                         
                         try {
-                            const encoding = jsLib.get_encoding('cl100k_base');
+                            // Use pure JS tiktoken implementation
+                            const encoding = encodingForModel('gpt-4');
                             
                             const gptTokenizer = (text) => {
                                 return encoding.encode(text).length;
@@ -208,48 +204,43 @@ async function loadTokenizer(modelType) {
                             
                             loadedTokenizers[modelType] = gptTokenizer;
                             return gptTokenizer;
-                        } catch (jsError) {
-                            console.warn('Error using js-tiktoken (pure JS version):', jsError);
-                            // Fall through to approximation method
+                        } catch (tiktokenJsError) {
+                            console.warn('Error initializing tiktoken.js:', tiktokenJsError);
                         }
                     }
                     
-                    // If neither version of tiktoken is available or fails, use improved approximation
-                    console.log('Using GPT tokenizer approximation (tiktoken not available)');
-                    
-                    // Improved approximation for GPT models
+                    // Fallback to approximation for GPT models
+                    console.log('Using approximation for ChatGPT tokenization');
                     const gptTokenizer = (text) => {
-                        // Start with a rough approximation based on characters
-                        let baseEstimate = Math.ceil(text.length / 4);
+                        // GPT models typically use ~4 characters per token on average
+                        // but with variations for whitespace and special characters
                         
-                        // Then adjust based on text characteristics
+                        // Start with character-based approximation
+                        let tokens = Math.ceil(text.length / 4);
                         
-                        // Count tokens in different text elements
-                        const wordCount = text.trim().split(/\s+/).length;
-                        // Words are typically ~1.3 tokens each in English for GPT models
-                        const wordEstimate = Math.ceil(wordCount * 1.3);
+                        // Adjust for whitespace (which tokenizes differently)
+                        const whitespaceChars = (text.match(/\s/g) || []).length;
+                        tokens += Math.floor(whitespaceChars * 0.25);
                         
-                        // GPT tends to treat spaces as part of the previous word
-                        // But newlines and special characters often get their own tokens
-                        const newlines = (text.match(/\n/g) || []).length;
-                        const codeBlocks = (text.match(/```/g) || []).length / 2;
+                        // Adjust for code blocks which may have special tokenization
+                        const codeBlocks = (text.match(/```[^`]*```/g) || []).length;
+                        tokens += codeBlocks * 3;
+                        
+                        // Adjust for special characters
                         const specialChars = (text.match(/[^a-zA-Z0-9\s]/g) || []).length;
+                        tokens += Math.floor(specialChars * 0.5);
                         
-                        // Average the character-based and word-based estimates
-                        // and add adjustments for special elements
-                        const finalEstimate = Math.ceil((baseEstimate + wordEstimate) / 2) + 
-                                            newlines + (codeBlocks * 4) + (specialChars * 0.5);
-                        
-                        return finalEstimate;
+                        return tokens;
                     };
                     
                     loadedTokenizers[modelType] = gptTokenizer;
                     return gptTokenizer;
+                
+                case 'claude-json':
+                case 'claude-specstory':
+                    console.log(`Loading ${modelType} tokenizer...`);
                     
-                case 'claude':
-                    // Claude tokenizer approximation
-                    console.log('Loading Claude tokenizer approximation...');
-                    
+                    // Both Claude formats use the same tokenization logic
                     const claudeTokenizer = (text) => {
                         // Claude uses a BPE tokenizer similar to GPT but with some differences
                         // Specifically how it handles whitespace and special characters
@@ -283,47 +274,12 @@ async function loadTokenizer(modelType) {
                                              (urls * 5) + 
                                              (specialChars * 0.3);
                         
-                        return Math.ceil(finalEstimate);
+                        return Math.max(1, Math.round(finalEstimate));
                     };
                     
                     loadedTokenizers[modelType] = claudeTokenizer;
                     return claudeTokenizer;
                 
-                case 'palm':
-                case 'gemini':
-                    // PaLM/Gemini tokenizer approximation
-                    console.log('Loading PaLM/Gemini tokenizer approximation...');
-                    
-                    const palmTokenizer = (text) => {
-                        // PaLM/Gemini uses SentencePiece tokenization
-                        // This is a rough approximation
-                        const wordCount = text.trim().split(/\s+/).length;
-                        const charCount = text.length;
-                        
-                        // Blend character and word-based approximations
-                        return Math.ceil((charCount / 4 + wordCount * 1.25) / 2);
-                    };
-                    
-                    loadedTokenizers[modelType] = palmTokenizer;
-                    return palmTokenizer;
-                    
-                case 'llama':
-                    // LLaMA tokenizer approximation
-                    console.log('Loading LLaMA tokenizer approximation...');
-                    
-                    const llamaTokenizer = (text) => {
-                        // LLaMA uses a byte-level BPE tokenizer
-                        // Typically results in slightly higher token counts than GPT for the same text
-                        const wordCount = text.trim().split(/\s+/).length;
-                        const charCount = text.length;
-                        
-                        // Blend approaches with LLaMA-specific adjustments
-                        return Math.ceil((charCount / 3.6 + wordCount * 1.4) / 2);
-                    };
-                    
-                    loadedTokenizers[modelType] = llamaTokenizer;
-                    return llamaTokenizer;
-                    
                 default:
                     // Default simple tokenizer for unknown models
                     console.log(`No specific tokenizer for ${modelType}, using default approximation`);

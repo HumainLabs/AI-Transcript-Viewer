@@ -18,21 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedIndex !== '') {
             const messageIndex = parseInt(selectedIndex);
             
-            if (!isSingleView) {
-                // In three-message view, if the selected message is from the assistant,
-                // display the previous message so that the assistant message appears in the center panel
-                const selectedMessage = messageList[messageIndex];
-                const role = selectedMessage.author?.role || selectedMessage.role || '';
-                
-                if (role === 'assistant' && messageIndex > 0) {
-                    // Display the user message before it, which will put the assistant message in the center
-                    displayMessage(messageIndex - 1);
-                } else {
-                    // For other roles, display normally
-                    displayMessage(messageIndex);
-                }
+            // In three-message view, if the selected message is from the assistant,
+            // display the previous message so that the assistant message appears in the center panel
+            const selectedMessage = messageList[messageIndex];
+            const role = selectedMessage.author?.role || selectedMessage.role || '';
+            
+            if (role === 'assistant' && messageIndex > 0) {
+                // Display the user message before it, which will put the assistant message in the center
+                displayMessage(messageIndex - 1);
             } else {
-                // In single view, just display the selected message directly
+                // For other roles, display normally
                 displayMessage(messageIndex);
             }
             
@@ -175,10 +170,8 @@ function toggleMessageBookmark(messageIndex, bookmarked = true) {
         }
     });
     
-    // Update bookmarked boxes visual styling if in three-message view
-    if (!isSingleView) {
-        updateMessageBoxBookmarkedStatus();
-    }
+    // Update bookmarked boxes visual styling
+    updateMessageBoxBookmarkedStatus();
     
     // Update the dropdown menu
     updateBookmarkedMessagesDropdown();
@@ -220,9 +213,10 @@ function updateMessageDisplay() {
 
 // Update bookmarked status on message boxes in three-message view
 function updateMessageBoxBookmarkedStatus() {
-    // Only relevant in three-message view
-    if (isSingleView) return;
+    // Three-message view is always active now
+    // REMOVED: if (isSingleView) return;
     
+    // Get container elements
     const previousBox = document.querySelector('.message-box.previous');
     const currentBox = document.querySelector('.message-box.current');
     const nextBox = document.querySelector('.message-box.next');
@@ -346,22 +340,17 @@ function navigateBookmarkedMessages(direction) {
 
 // Helper function to navigate to bookmarked message with role-based adjustment
 function navigateToBookmarkedMessage(messageIndex) {
-    if (!isSingleView) {
-        // In three-message view, if the selected message is from the assistant,
-        // display the previous message so that the assistant message appears in the center panel
-        const selectedMessage = messageList[messageIndex];
-        const role = selectedMessage.author?.role || selectedMessage.role || '';
-        
-        if (role === 'assistant' && messageIndex > 0) {
-            // Display the user message before it, which will put the assistant message in the center
-            console.log(`Showing assistant message ${messageIndex} by displaying index ${messageIndex - 1}`);
-            displayMessage(messageIndex - 1);
-        } else {
-            // For other roles, display normally
-            displayMessage(messageIndex);
-        }
+    // In three-message view, if the selected message is from the assistant,
+    // display the previous message so that the assistant message appears in the center panel
+    const selectedMessage = messageList[messageIndex];
+    const role = selectedMessage.author?.role || selectedMessage.role || '';
+    
+    if (role === 'assistant' && messageIndex > 0) {
+        // Display the user message before it, which will put the assistant message in the center
+        console.log(`Showing assistant message ${messageIndex} by displaying index ${messageIndex - 1}`);
+        displayMessage(messageIndex - 1);
     } else {
-        // In single view, just display the selected message directly
+        // For other roles, display normally
         displayMessage(messageIndex);
     }
 }
@@ -454,4 +443,35 @@ function copyStarredMessagesToClipboard() {
             console.error('Failed to copy starred messages:', err);
             alert('Failed to copy messages to clipboard. See console for details.');
         });
+}
+
+function setupStarIcons() {
+    const messages = document.querySelectorAll('.message');
+    messages.forEach(message => {
+        // Find or create the star icon container
+        let actionIcons = message.querySelector('.action-icons');
+        if (!actionIcons) {
+            actionIcons = document.createElement('div');
+            actionIcons.className = 'action-icons';
+            
+            // Insert after message-header if it exists, otherwise at the beginning of the message
+            const messageHeader = message.querySelector('.message-header');
+            if (messageHeader) {
+                messageHeader.parentNode.insertBefore(actionIcons, messageHeader.nextSibling);
+            } else {
+                message.insertBefore(actionIcons, message.firstChild);
+            }
+        }
+        
+        // Only add star icons to messages in the three-message view
+        // REMOVED: if (!isSingleView) {
+        // Create star icon
+        let starIcon = actionIcons.querySelector('.star-icon');
+        if (!starIcon) {
+            starIcon = document.createElement('i');
+            starIcon.className = 'star-icon far fa-star';
+            starIcon.title = 'Star this message';
+            actionIcons.appendChild(starIcon);
+        }
+    });
 } 

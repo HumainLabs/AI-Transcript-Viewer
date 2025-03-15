@@ -56,11 +56,15 @@ This layout provides context for each message by showing the surrounding message
 
 The application handles AI "thinking" content differently based on the platform:
 
-- **ChatGPT Transcripts**: When message n+1 is an assistant message and is followed by a tool message with name "a8km123", the tool message is treated as the "thinking" part of the assistant's response and combined with it.
+- **ChatGPT Transcripts**: For "thinking" content, there are two possible patterns handled: 
+  1. An assistant message followed by a tool message with name "a8km123" - the tool message is treated as the thinking part.
+  2. A tool message with name "a8km123" followed by an assistant message - the tool message is treated as the thinking part, and both are combined.
+  
+  In both cases, the thinking and response are combined to display as a single message. `transcript.platform: "chatgpt"`
 
-- **Claude JSON**: These transcripts contain messages in arrays where the first message is the thinking/reasoning part and the second message is the actual content. Claude JSON also uses "human" role instead of "user" role, which is handled by the application's navigation functions.
+- **Claude JSON**: These transcripts include a dedicated `claude_thinking` field alongside the assistant's message that contains the reasoning/thinking content. Claude JSON also uses "human" role instead of "user" role, which is handled by the application's navigation functions. `transcript.platform: "claude-json"`
 
-- **Claude SpecStory**: These transcripts use `<think>` tags within messages to delineate the reasoning/thinking part from the response content.
+- **Claude SpecStory**: These transcripts use `<think>` tags within messages to delineate the reasoning/thinking part from the response content. `transcript.platform: "claude-specstory"`
 
 This handling ensures that regardless of the transcript format, the application properly displays both the reasoning process and the final response from the AI.
 

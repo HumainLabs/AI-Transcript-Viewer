@@ -106,14 +106,12 @@ function handleFileSelection(event) {
                 if (transcript.platform) {
                     const platform = transcript.platform.toLowerCase();
                     
-                    if (platform === 'chatgpt' || platform === 'gpt') {
-                        detectedModel = 'gpt';
-                    } else if (platform === 'claude') {
-                        detectedModel = 'claude';
-                    } else if (platform === 'palm' || platform === 'gemini') {
-                        detectedModel = 'palm';
-                    } else if (platform === 'llama') {
-                        detectedModel = 'llama';
+                    if (platform === 'chatgpt') {
+                        detectedModel = 'chatgpt';
+                    } else if (platform === 'claude-json') {
+                        detectedModel = 'claude-json';
+                    } else if (platform === 'claude-specstory') {
+                        detectedModel = 'claude-specstory';
                     } else {
                         detectedModel = 'unknown';
                     }
