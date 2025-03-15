@@ -6,7 +6,7 @@
  */
 
 import { getPlatformHandler } from './platform-interface.js';
-import { generateThinkingHtml, detectPlatform } from './platform-utils.js';
+import { generateThinkingHtml, detectPlatform, isVoiceModeMessage } from './platform-utils.js';
 
 /**
  * Generates HTML for displaying a message
@@ -31,10 +31,25 @@ export function generateMessageHTML(message, transcript, thinkingMessage = null)
     // Get message index for event handling
     const messageIndex = typeof message._index !== 'undefined' ? message._index : -1;
     
-    // Parse markdown content using marked library
-    const parsedContent = typeof marked !== 'undefined' ? 
-        marked.parse(content) : 
-        `<pre>${content}</pre>`;
+    // Check if this is a voice mode message using the utility function
+    const isVoiceMode = isVoiceModeMessage(message);
+    
+    console.log(`[DEBUG] Message ${messageIndex}, role=${role}, isVoiceMode=${isVoiceMode}`, message);
+    
+    // Parse content - handle voice mode specially
+    let parsedContent;
+    if (isVoiceMode && role.toLowerCase() === 'system') {
+        parsedContent = '<h2 class="voice-mode-header">Voice Mode</h2>';
+        console.log(`[DEBUG] Rendering voice mode header for System message ${messageIndex}`);
+    } else if (!content || content.trim() === '') {
+        // If no content and not voice mode, show empty message indicator
+        parsedContent = '<p class="empty-message">[No message content]</p>';
+    } else {
+        // Regular parsing with markdown
+        parsedContent = typeof marked !== 'undefined' ? 
+            marked.parse(content) : 
+            `<pre>${content}</pre>`;
+    }
     
     // If we have a thinking message, ensure we use the primary message's role class
     // This is especially important for ChatGPT where tool messages (thinking) are combined with assistant messages

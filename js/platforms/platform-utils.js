@@ -136,4 +136,21 @@ export function detectPlatform(transcript) {
     // Default fallback
     console.warn('Unable to detect platform from transcript, using unknown');
     return 'unknown';
+}
+
+/**
+ * Checks if a message is a voice mode message
+ * @param {Object} message - The message to check
+ * @returns {boolean} - Whether the message is a voice mode message
+ */
+export function isVoiceModeMessage(message) {
+    if (!message) return false;
+    
+    // Check various possible locations for voice_mode_message flag
+    return (
+        message.voice_mode_message === true ||
+        (message.metadata && message.metadata.voice_mode_message === true) ||
+        (message.content && message.content.voice_mode_message === true) ||
+        (message.body && message.body.voice_mode_message === true)
+    );
 } 
