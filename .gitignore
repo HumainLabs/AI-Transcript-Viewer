@@ -26,3 +26,6 @@ transcripts-json/*
 .history/
 
 .cursor
+
+node_modules/
+package-lock.json
