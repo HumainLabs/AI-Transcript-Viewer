@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "js-tiktoken": "^1.0.19",
+    "uuid": "^11.1.0"
+  }
+}
