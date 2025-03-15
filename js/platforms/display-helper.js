@@ -41,11 +41,17 @@ export function generateMessageHTML(message, transcript, thinkingMessage = null)
     const roleClass = thinkingMessage && role.toLowerCase() === 'tool' ? 
         'assistant' : role.toLowerCase();
     
+    // Create combined message index display (show both indices when combining messages)
+    let indexDisplay = messageIndex;
+    if (thinkingMessage && typeof thinkingMessage._index !== 'undefined') {
+        indexDisplay = `${messageIndex}+${thinkingMessage._index}`;
+    }
+    
     // Generate message header with index in the role
     const html = `
         <div class="message role-${roleClass}">
             <div class="message-header">
-                <span class="message-role">${role} (${messageIndex})</span>
+                <span class="message-role">${role} (${indexDisplay})</span>
                 <div class="action-icons">
                     <span class="search-icon" data-message-index="${messageIndex}" title="Find Similar Messages"><i class="fas fa-search"></i></span>
                     <span class="copy-icon" data-message-index="${messageIndex}" title="Copy message to clipboard"><i class="fas fa-clipboard"></i></span>
@@ -177,8 +183,18 @@ export function updateThreeMessageView(messages, currentIndex, transcript, conta
         
         console.log(`[DEBUG] Next message (${nextIndex}): role=${nextRole}`);
         
+        // Check for combined messages at next index
+        const nextSequence = handler.handleMessageSequence(messages, nextIndex, transcript);
+        
+        // Determine the correct role class to use for the box
+        // If it's a tool message that's part of a sequence, use 'assistant' instead
+        let boxRoleClass = nextRole.toLowerCase();
+        if (nextSequence && nextRole.toLowerCase() === 'tool' && handler.getMessageRole(nextSequence.primaryMessage).toLowerCase() === 'assistant') {
+            boxRoleClass = 'assistant';
+        }
+        
         // Add role class and update status
-        currentBox.classList.add(`role-box-${nextRole.toLowerCase()}`);
+        currentBox.classList.add(`role-box-${boxRoleClass}`);
         updateBoxStatus(currentBox, nextIndex);
         
         // Update the label
@@ -186,9 +202,6 @@ export function updateThreeMessageView(messages, currentIndex, transcript, conta
         if (currentLabel) {
             currentLabel.textContent = `${nextRole} (${nextIndex})`;
         }
-        
-        // Check for combined messages at next index
-        const nextSequence = handler.handleMessageSequence(messages, nextIndex, transcript);
         
         if (nextSequence) {
             console.log(`[DEBUG] Found sequence at next index ${nextIndex}:`, {
@@ -228,8 +241,18 @@ export function updateThreeMessageView(messages, currentIndex, transcript, conta
                 
                 console.log(`[DEBUG] Following message (${followingIndex}): role=${followingRole}`);
                 
+                // Check for combined messages at following index
+                const followingSequence = handler.handleMessageSequence(messages, followingIndex, transcript);
+                
+                // Determine the correct role class for the following box
+                let followingBoxRoleClass = followingRole.toLowerCase();
+                if (followingSequence && followingRole.toLowerCase() === 'tool' && 
+                    handler.getMessageRole(followingSequence.primaryMessage).toLowerCase() === 'assistant') {
+                    followingBoxRoleClass = 'assistant';
+                }
+                
                 // Add role class and update status
-                nextBox.classList.add(`role-box-${followingRole.toLowerCase()}`);
+                nextBox.classList.add(`role-box-${followingBoxRoleClass}`);
                 updateBoxStatus(nextBox, followingIndex);
                 
                 // Update the label
@@ -237,9 +260,6 @@ export function updateThreeMessageView(messages, currentIndex, transcript, conta
                 if (nextLabel) {
                     nextLabel.textContent = `${followingRole} (${followingIndex})`;
                 }
-                
-                // Check for combined messages at following index
-                const followingSequence = handler.handleMessageSequence(messages, followingIndex, transcript);
                 
                 if (followingSequence) {
                     console.log(`[DEBUG] Found sequence at following index ${followingIndex}`);
@@ -274,8 +294,18 @@ export function updateThreeMessageView(messages, currentIndex, transcript, conta
                 
                 console.log(`[DEBUG] Following message (${followingIndex}): role=${followingRole}`);
                 
+                // Check for combined messages at following index
+                const followingSequence = handler.handleMessageSequence(messages, followingIndex, transcript);
+                
+                // Determine the correct role class for the following box
+                let followingBoxRoleClass = followingRole.toLowerCase();
+                if (followingSequence && followingRole.toLowerCase() === 'tool' && 
+                    handler.getMessageRole(followingSequence.primaryMessage).toLowerCase() === 'assistant') {
+                    followingBoxRoleClass = 'assistant';
+                }
+                
                 // Add role class and update status
-                nextBox.classList.add(`role-box-${followingRole.toLowerCase()}`);
+                nextBox.classList.add(`role-box-${followingBoxRoleClass}`);
                 updateBoxStatus(nextBox, followingIndex);
                 
                 // Update the label
@@ -283,9 +313,6 @@ export function updateThreeMessageView(messages, currentIndex, transcript, conta
                 if (nextLabel) {
                     nextLabel.textContent = `${followingRole} (${followingIndex})`;
                 }
-                
-                // Check for combined messages at following index
-                const followingSequence = handler.handleMessageSequence(messages, followingIndex, transcript);
                 
                 if (followingSequence) {
                     console.log(`[DEBUG] Found sequence at following index ${followingIndex}`);
