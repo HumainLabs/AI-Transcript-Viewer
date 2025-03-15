@@ -16,6 +16,10 @@ I use this tool to view downloaded transcripts using the [HumainLabs Firefox Ext
   <p align="center"><a href="https://humainlabs.ai" align="center">www.HumainLabs.ai</a></p>
 </p>
 
+## Screenshot
+
+<img src="AI-Transcript-Viewer-Screenshot.jpg" alt="Interface Screenshot"  />
+
 ## 📋 Table of Contents
 
 * [Overview](#-overview)
