@@ -421,167 +421,157 @@ function formatRoleLabel(message) {
     return capitalizeFirstLetter(role);
 }
 
-// Update all three message containers
+// Update the three-message view with the current message and adjacent messages
 function updateThreeMessageView() {
     if (!messageList || messageList.length === 0) return;
     
-    // Get the current message
-    const currentMessage = messageList[currentMessageIndex];
-    
-    // Get container elements
     const previousBox = document.querySelector('.message-box.previous');
     const currentBox = document.querySelector('.message-box.current');
     const nextBox = document.querySelector('.message-box.next');
     
-    // Get label elements - we'll hide these since we now use message-header
-    const previousLabel = document.querySelector('.message-box.previous .message-box-label');
-    const currentLabel = document.querySelector('.message-box.current .message-box-label');
-    const nextLabel = document.querySelector('.message-box.next .message-box-label');
-    
-    // Hide all message-box-label elements since we're using message-header now
-    previousLabel.style.display = 'none';
-    currentLabel.style.display = 'none';
-    nextLabel.style.display = 'none';
-    
-    // Get message containers
     const previousMessageContainer = document.getElementById('previous-message-container');
     const currentMessageContainer = document.getElementById('current-message-container');
     const nextMessageContainer = document.getElementById('next-message-container');
     
-    // Clear previous role and starred classes
-    resetRoleClasses(previousBox);
-    resetRoleClasses(currentBox);
-    resetRoleClasses(nextBox);
+    // Use platform handlers if available
+    if (window.updatePlatformThreeMessageView && transcript) {
+        const containers = {
+            previousBox,
+            currentBox,
+            nextBox,
+            previousMessageContainer,
+            currentMessageContainer,
+            nextMessageContainer
+        };
+        
+        try {
+            window.updatePlatformThreeMessageView(messageList, currentMessageIndex, transcript, containers);
+            return; // Exit if platform handler was used successfully
+        } catch (error) {
+            console.error("Error using platform handler for three message view:", error);
+            // Fall back to the legacy implementation below
+        }
+    }
     
-    previousBox.classList.remove('starred-message', 'bookmarked-message');
-    currentBox.classList.remove('starred-message', 'bookmarked-message');
-    nextBox.classList.remove('starred-message', 'bookmarked-message');
+    // Legacy implementation if platform handler is not available
     
-    // Add current message role to previous box
-    const currentRole = currentMessage.author?.role || currentMessage.role || 'unknown';
+    // Reset the boxes
+    resetBoxes([previousBox, currentBox, nextBox]);
+    
+    // Current message (in previous box)
+    const currentMessage = messageList[currentMessageIndex];
+    let currentRole = '';
+    
+    if (currentMessage.author && currentMessage.author.role) {
+        currentRole = currentMessage.author.role;
+    } else if (currentMessage.role) {
+        currentRole = currentMessage.role;
+    }
+    
     previousBox.classList.add(`role-box-${currentRole}`);
-    
-    // Check if current message is starred/bookmarked
-    if (isMessageStarred(currentMessageIndex)) {
-        previousBox.classList.add('starred-message');
-    }
-    if (isMessageBookmarked(currentMessageIndex)) {
-        previousBox.classList.add('bookmarked-message');
-    }
-    
-    // Display current message in previous box
+    updateBoxStatus(previousBox, currentMessageIndex);
     previousMessageContainer.innerHTML = generateMessageHTML(currentMessage);
     
-    // Handle next message (goes in current box)
+    // Next message (in current box)
     const nextIndex = currentMessageIndex + 1;
     if (nextIndex < messageList.length) {
         const nextMessage = messageList[nextIndex];
-        // Get role for next message
-        const nextRole = nextMessage.author?.role || nextMessage.role || 'unknown';
-        const nextName = nextMessage.author?.name || '';
+        let nextRole = '';
         
-        // Add to current box
+        if (nextMessage.author && nextMessage.author.role) {
+            nextRole = nextMessage.author.role;
+        } else if (nextMessage.role) {
+            nextRole = nextMessage.role;
+        }
+        
         currentBox.classList.add(`role-box-${nextRole}`);
+        updateBoxStatus(currentBox, nextIndex);
         
-        // Check if this message is starred/bookmarked
-        if (isMessageStarred(nextIndex)) {
-            currentBox.classList.add('starred-message');
-        }
-        if (isMessageBookmarked(nextIndex)) {
-            currentBox.classList.add('bookmarked-message');
-        }
-        
-        // Handle two possible patterns for ChatGPT thinking:
-        // 1. assistant message followed by a8km123 tool message
-        // 2. a8km123 tool message followed by assistant message
-        let combinedMessage = null;
-        let a8kmMessage = null;
-        
-        if (transcript.platform === 'chatgpt') {
-            if (nextRole === 'assistant' && nextIndex + 1 < messageList.length) {
-                // Pattern 1: assistant message followed by a8km123 tool message
-                const possibleToolMessage = messageList[nextIndex + 1];
-                const isA8kmTool = possibleToolMessage.author?.role === 'tool' && possibleToolMessage.author?.name === 'a8km123';
-                
-                if (isA8kmTool) {
-                    a8kmMessage = possibleToolMessage;
-                }
-            } else if (nextRole === 'tool' && nextName === 'a8km123' && nextIndex + 1 < messageList.length) {
-                // Pattern 2: a8km123 tool message followed by assistant message
-                const possibleAssistantMessage = messageList[nextIndex + 1];
-                const isAssistant = possibleAssistantMessage.author?.role === 'assistant' || possibleAssistantMessage.role === 'assistant';
-                
-                if (isAssistant) {
-                    // Use the assistant message as the primary message and the a8km123 as the thinking
-                    combinedMessage = possibleAssistantMessage;
-                    a8kmMessage = nextMessage; // Current a8km123 message is the thinking
-                }
-            }
-        }
-        
-        // If we have a combined message from pattern 2, display that
-        if (combinedMessage) {
-            currentMessageContainer.innerHTML = generateMessageHTML(combinedMessage, a8kmMessage);
+        // Special handling for a8km123 tools in ChatGPT
+        if (transcript.platform === 'chatgpt' && 
+            nextRole === 'tool' && 
+            nextMessage.author && 
+            nextMessage.author.name === 'a8km123' && 
+            nextIndex + 1 < messageList.length) {
             
-            // Skip the next message in the right pane since we've incorporated it
-            const followingIndex = currentMessageIndex + 3;
-            if (followingIndex < messageList.length) {
-                const followingMessage = messageList[followingIndex];
-                const followingRole = followingMessage.author?.role || followingMessage.role || 'unknown';
+            const followingMessage = messageList[nextIndex + 1];
+            if (followingMessage.author && followingMessage.author.role === 'assistant') {
+                // Show assistant message with thinking content from a8km123
+                currentMessageContainer.innerHTML = generateMessageHTML(followingMessage, nextMessage);
                 
-                nextBox.classList.add(`role-box-${followingRole}`);
-                
-                // Check if this message is starred/bookmarked
-                if (isMessageStarred(followingIndex)) {
-                    nextBox.classList.add('starred-message');
+                // Skip to message after the assistant message for the next box
+                const followingIndex = nextIndex + 1;
+                if (followingIndex + 1 < messageList.length) {
+                    const followingNextMessage = messageList[followingIndex + 1];
+                    let followingNextRole = '';
+                    
+                    if (followingNextMessage.author && followingNextMessage.author.role) {
+                        followingNextRole = followingNextMessage.author.role;
+                    } else if (followingNextMessage.role) {
+                        followingNextRole = followingNextMessage.role;
+                    }
+                    
+                    nextBox.classList.add(`role-box-${followingNextRole}`);
+                    updateBoxStatus(nextBox, followingIndex + 1);
+                    nextMessageContainer.innerHTML = generateMessageHTML(followingNextMessage);
+                } else {
+                    nextMessageContainer.innerHTML = '<p>No following message</p>';
                 }
-                if (isMessageBookmarked(followingIndex)) {
-                    nextBox.classList.add('bookmarked-message');
-                }
                 
-                nextMessageContainer.innerHTML = generateMessageHTML(followingMessage);
-            } else {
-                nextMessageContainer.innerHTML = '<p>No following message</p>';
+                return;
             }
+        }
+        
+        // Normal case
+        currentMessageContainer.innerHTML = generateMessageHTML(nextMessage);
+        
+        // Following message (in next box)
+        const followingIndex = nextIndex + 1;
+        if (followingIndex < messageList.length) {
+            const followingMessage = messageList[followingIndex];
+            let followingRole = '';
+            
+            if (followingMessage.author && followingMessage.author.role) {
+                followingRole = followingMessage.author.role;
+            } else if (followingMessage.role) {
+                followingRole = followingMessage.role;
+            }
+            
+            nextBox.classList.add(`role-box-${followingRole}`);
+            updateBoxStatus(nextBox, followingIndex);
+            nextMessageContainer.innerHTML = generateMessageHTML(followingMessage);
         } else {
-            // No combined message, display normally (including pattern 1)
-            currentMessageContainer.innerHTML = generateMessageHTML(nextMessage, a8kmMessage);
-            
-            // Handle following message (goes in next box)
-            const followingIndex = currentMessageIndex + 2;
-            if (followingIndex < messageList.length) {
-                const followingMessage = messageList[followingIndex];
-                const followingRole = followingMessage.author?.role || followingMessage.role || 'unknown';
-                
-                nextBox.classList.add(`role-box-${followingRole}`);
-                
-                // Check if this message is starred/bookmarked
-                if (isMessageStarred(followingIndex)) {
-                    nextBox.classList.add('starred-message');
-                }
-                if (isMessageBookmarked(followingIndex)) {
-                    nextBox.classList.add('bookmarked-message');
-                }
-                
-                nextMessageContainer.innerHTML = generateMessageHTML(followingMessage);
-            } else {
-                nextMessageContainer.innerHTML = '<p>No following message</p>';
-            }
+            nextMessageContainer.innerHTML = '<p>No following message</p>';
         }
     } else {
         currentMessageContainer.innerHTML = '<p>No next message</p>';
         nextMessageContainer.innerHTML = '<p>No following message</p>';
     }
-    
-    // Set up event listeners for star and bookmark icons after updating all containers
-    setupStarIcons();
-    setupBookmarkIcons();
 }
 
-// Helper function to remove all role-related classes from an element
-function resetRoleClasses(element) {
-    const classesToRemove = Array.from(element.classList).filter(cls => cls.startsWith('role-box-'));
-    classesToRemove.forEach(cls => element.classList.remove(cls));
+// Helper function to reset message boxes 
+function resetBoxes(boxes) {
+    boxes.forEach(box => {
+        // Remove all role-* classes
+        const roleClasses = Array.from(box.classList)
+            .filter(cls => cls.startsWith('role-box-'));
+        
+        roleClasses.forEach(cls => box.classList.remove(cls));
+        
+        // Remove starred and bookmarked classes
+        box.classList.remove('starred-message', 'bookmarked-message');
+    });
+}
+
+// Helper function to update box status (starred/bookmarked)
+function updateBoxStatus(box, messageIndex) {
+    if (typeof isMessageStarred === 'function' && isMessageStarred(messageIndex)) {
+        box.classList.add('starred-message');
+    }
+    
+    if (typeof isMessageBookmarked === 'function' && isMessageBookmarked(messageIndex)) {
+        box.classList.add('bookmarked-message');
+    }
 }
 
 // Helper function to capitalize the first letter of a string

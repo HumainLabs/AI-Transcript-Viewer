@@ -1,3 +1,6 @@
+// Reference global variables from main.js
+// No need to redeclare them here
+
 // Function to process the transcript JSON and extract messages in order
 function processTranscript(data) {
     transcript = data;
@@ -23,17 +26,36 @@ function processTranscript(data) {
         messageList = transcript.messages;
     }
     
+    // Add indices to messages for reference
+    messageList.forEach((message, index) => {
+        message._index = index;
+    });
+    
+    // Detect transcript platform if not already set
+    if (!transcript.platform) {
+        if (window.detectTranscriptPlatform) {
+            transcript.platform = window.detectTranscriptPlatform(transcript);
+            console.log(`Detected transcript platform: ${transcript.platform}`);
+        }
+    }
+    
     // Update the total message count
-    totalMessagesSpan.textContent = messageList.length;
+    document.getElementById('total-messages').textContent = messageList.length;
     
     // Display the first message
     if (messageList.length > 0) {
         currentMessageIndex = 0;
         displayMessage(currentMessageIndex);
     } else {
-        messageContainer.innerHTML = '<p>No messages found in this transcript.</p>';
-        currentIndexSpan.textContent = '0';
+        document.getElementById('previous-message-container').innerHTML = '<p>No messages found in this transcript.</p>';
+        document.getElementById('current-index').textContent = '0';
     }
+    
+    // Dispatch a custom event to notify other modules that the transcript is loaded
+    const event = new CustomEvent('transcript-loaded', { detail: { transcript } });
+    document.dispatchEvent(event);
+    
+    return transcript;
 }
 
 // Recursive function to traverse the conversation tree
@@ -52,8 +74,25 @@ function traverseConversation(nodeId) {
     }
 }
 
-// Extract the message content from various message formats for display
+// Extract the message content using platform handlers if available
 function extractMessageContent(message) {
+    // Use platform handler if available
+    if (window.generatePlatformMessageHTML && transcript) {
+        try {
+            // Get message content via platform handler
+            const platform = transcript.platform || 
+                             (window.detectTranscriptPlatform ? window.detectTranscriptPlatform(transcript) : null);
+            
+            if (platform && window.getPlatformHandler) {
+                const handler = window.getPlatformHandler(platform);
+                return handler.extractMessageContent(message);
+            }
+        } catch (error) {
+            console.error("Error using platform handler:", error);
+        }
+    }
+    
+    // Fallback to legacy implementation if handler not available
     // Check if message is empty or has no content
     if (!message || 
         ((!message.parts || message.parts.length === 0) && 
@@ -86,39 +125,36 @@ function extractMessageContent(message) {
         return "[no message]";
     }
     
-    // For Claude thinking models, remove the <think> tags from the content
-    // They will be extracted separately using extractThinkingContent
-    if (isClaudeThinkingModel(message) && content.includes('<think>')) {
-        content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-    }
-    
     return content;
 }
 
-// Check if a message is from a Claude thinking model
-function isClaudeThinkingModel(message) {
-    if (!message || !message.metadata || !message.metadata.model_slug) {
-        return false;
+// Extract thinking content using platform handlers if available
+function extractThinkingContent(message) {
+    // Use platform handler if available
+    if (window.generatePlatformMessageHTML && transcript) {
+        try {
+            // Get thinking content via platform handler
+            const platform = transcript.platform || 
+                             (window.detectTranscriptPlatform ? window.detectTranscriptPlatform(transcript) : null);
+            
+            if (platform && window.getPlatformHandler) {
+                const handler = window.getPlatformHandler(platform);
+                return handler.extractThinkingContent(message, transcript);
+            }
+        } catch (error) {
+            console.error("Error using platform handler for thinking content:", error);
+        }
     }
     
-    const modelName = message.metadata.model_slug.toLowerCase();
-    return modelName.includes('claude') && modelName.includes('thinking');
-}
-
-// Check if message is from Claude JSON format
-function isClaudeJsonMessage(message) {
-    // Check if we're in a claude-json platform transcript
-    if (transcript && transcript.platform === 'claude-json') {
-        return true;
+    // Fallback implementations
+    
+    // For Claude JSON, check for claude_thinking field
+    if (message && message.claude_thinking) {
+        return message.claude_thinking;
     }
-    return false;
-}
-
-// Extract thinking content from <think> tags in Claude messages
-// or from claude_thinking field in Claude JSON
-function extractThinkingContent(message) {
-    // Handle Claude SpecStory format with <think> tags
-    if (message && isClaudeThinkingModel(message)) {
+    
+    // For Claude thinking models with <think> tags
+    if (isClaudeThinkingModel(message)) {
         let content = '';
         
         // Get the full content
@@ -143,15 +179,26 @@ function extractThinkingContent(message) {
         }
     }
     
-    // Handle Claude JSON format with claude_thinking field
-    if (message && isClaudeJsonMessage(message)) {
-        // In Claude JSON format, thinking content is in the claude_thinking field
-        if (message.claude_thinking) {
-            return message.claude_thinking;
-        }
+    return null;
+}
+
+// Check if a message is from a Claude thinking model
+function isClaudeThinkingModel(message) {
+    if (!message || !message.metadata || !message.metadata.model_slug) {
+        return false;
     }
     
-    return null;
+    const modelName = message.metadata.model_slug.toLowerCase();
+    return modelName.includes('claude') && (modelName.includes('thinking') || modelName.includes('haiku'));
+}
+
+// Check if message is from Claude JSON format
+function isClaudeJsonMessage(message) {
+    // Check if we're in a claude-json platform transcript
+    if (transcript && transcript.platform === 'claude-json') {
+        return true;
+    }
+    return false;
 }
 
 // Extract message content for search purposes (simpler, focused on text extraction)

@@ -7,7 +7,6 @@ let detectedModel = 'unknown'; // Track which model the transcript is from
 
 // DOM elements
 const fileInput = document.getElementById('transcript-file');
-const messageContainer = document.getElementById('message-container');
 const previousMessageContainer = document.getElementById('previous-message-container');
 const currentMessageContainer = document.getElementById('current-message-container');
 const nextMessageContainer = document.getElementById('next-message-container');
@@ -24,6 +23,7 @@ const gotoMessageBtn = document.getElementById('goto-message-btn');
 document.addEventListener('DOMContentLoaded', () => {
     initializeUI();
     setupEventListeners();
+    setupPlatformHandlers();
 });
 
 // Set up initial UI state
@@ -50,6 +50,26 @@ function setupEventListeners() {
     
     // Keyboard navigation
     document.addEventListener('keydown', handleKeyNavigation);
+    
+    // Listen for platform handler initialization
+    document.addEventListener('platform-handlers-ready', function(event) {
+        console.log('Platform handlers are ready to use');
+    });
+}
+
+// Set up platform handlers
+function setupPlatformHandlers() {
+    // Create a global accessor for the getPlatformHandler function
+    // This will be populated by the script.js module
+    window.getPlatformHandler = null;
+    
+    // Listen for when the platform handlers are initialized
+    document.addEventListener('platform-handlers-ready', function(event) {
+        if (event.detail && event.detail.getPlatformHandler) {
+            window.getPlatformHandler = event.detail.getPlatformHandler;
+            console.log('Platform handler accessor is now available globally');
+        }
+    });
 }
 
 // Prompt user to enter a message number
@@ -139,7 +159,7 @@ function handleFileSelection(event) {
                 }
                 
             } catch (error) {
-                messageContainer.innerHTML = `<p>Error parsing JSON: ${error.message}</p>`;
+                previousMessageContainer.innerHTML = `<p>Error parsing JSON: ${error.message}</p>`;
             }
         };
         reader.readAsText(file);

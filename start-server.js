@@ -15,7 +15,7 @@ const { exec } = require('child_process');
 // Configuration
 const PORT = 9080;
 const HOST = 'localhost';
-const MAIN_FILE = 'TranscriptViewer.html';
+const MAIN_FILE = 'index.html';
 
 // Create server
 const server = http.createServer((req, res) => {

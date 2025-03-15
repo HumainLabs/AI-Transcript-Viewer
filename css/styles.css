@@ -176,14 +176,21 @@ table {
 #file-selector {
     margin-bottom: 20px;
 }
-#message-container {
+
+/* 
+ * The #message-container is no longer used, but keeping the style
+ * and applying it to the message containers in the three-pane view
+ */
+#previous-message-container, 
+#current-message-container, 
+#next-message-container {
     border: 1px solid #ccc;
-    padding: 20px;
+    padding: 10px;
     min-height: 200px;
-    margin-bottom: 20px;
     overflow-y: auto;
-    max-height: 700px;
+    background-color: #f8f9fa;
 }
+
 /* Three message view container */
 #three-message-container {
     display: grid;
@@ -212,32 +219,32 @@ table {
     justify-content: space-between;
     margin-bottom: 20px;
 }
-.role-user {
-    background-color: #f0f7ff;
+.role-User, .role-user {
+    /* background-color: #f0f8ff; /* Light blue for user */
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 10px;
 }
-.role-assistant {
-    background-color: #f5f5f5;
+.role-Assistant, .role-assistant {
+    /* background-color: #f0fff0; /* Light green for assistant */
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 10px;
 }
-.role-system {
-    background-color: #fffbf0;
+.role-System, .role-system {
+    /* background-color: #fff8f0; /* Light orange for system */
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 10px;
 }
-.role-tool {
-    background-color: #f0f0ff;
+.role-Tool, .role-tool {
+    /* background-color: #f8f0ff; /* Light purple for tool */
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 10px;
     border-left: 4px solid #6666cc;
 }
-.role-tool.web {
+.role-Tool.web {
     background-color: #f0f8ff;
 }
 .tool-header {
@@ -552,29 +559,29 @@ blockquote {
 }
 
 /* Role-specific message box styling */
-.message-box.role-box-user {
-    background-color: #f0f7ff;
-    border-color: #0066cc;
+.message-box.role-box-User, .message-box.role-box-user {
+    background-color: #f0f8ff;
+    border-color: #4a86e8;
 }
 
-.message-box.role-box-assistant {
+.message-box.role-box-Assistant, .message-box.role-box-assistant {
+    background-color: #f0fff0;
+    border-color: #6aa84f;
+}
+
+.message-box.role-box-System, .message-box.role-box-system {
+    background-color: #fff8f0;
+    border-color: #e69138;
+}
+
+.message-box.role-box-Tool, .message-box.role-box-tool {
+    background-color: #f8f0ff;
+    border-color: #9c59b6;
+}
+
+.message-box.role-box-unknown, .message-box.role-box-Unknown {
     background-color: #f5f5f5;
-    border-color: #0099cc;
-}
-
-.message-box.role-box-system {
-    background-color: #fffbf0;
-    border-color: #ccaa00;
-}
-
-.message-box.role-box-tool {
-    background-color: #f0f0ff;
-    border-color: #6666cc;
-}
-
-.message-box.role-box-unknown {
-    background-color: #f9f9f9;
-    border-color: #cccccc;
+    border-color: #999;
 }
 
 .message-box.starred-message {
@@ -596,7 +603,35 @@ blockquote {
 
 .message-role {
     font-weight: bold;
-    color: #555;
+    padding: 2px 8px;
+    padding-left: 0px;
+    border-radius: 3px;
+    margin-right: 10px;
+}
+
+.role-User .message-role, .role-user .message-role {
+    
+    /* color: #2c5bb4; */
+}
+
+.role-Assistant .message-role, .role-assistant .message-role {
+    
+    /* color: #2d682d; */
+}
+
+.role-System .message-role, .role-system .message-role {
+    
+    /* color: #b45f1a; */
+}
+
+.role-Tool .message-role, .role-tool .message-role {
+    
+    /* color: #682d68; */
+}
+
+.role-unknown .message-role, .role-Unknown .message-role {
+    
+    /* color: #555; */
 }
 
 .message-token-count {
