@@ -4,7 +4,7 @@
 
 A powerful tool for viewing and analyzing AI conversation transcripts from various platforms including ChatGPT, Claude, and SpecStory transcripts from VS Code and Cursor AI. 
 
-I use this tool to view downloaded transcripts using the [HumainLabs Firefox Extension](https://github.com/HumainLabs/claude-chatgpt-backup-extension)
+I use this tool to view downloaded transcripts using the [HumainLabs Firefox Extension for ChatGPT and Claude JSON Download](https://github.com/HumainLabs/claude-chatgpt-backup-extension)
 
 
 
