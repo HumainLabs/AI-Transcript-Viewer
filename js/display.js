@@ -174,37 +174,49 @@ function generateMessageHTML(message, combineWithPrevious = null) {
     return html;
 }
 
-// Function to display a specific message at an index
-function displayMessage(index) {
-    if (!messageList || index < 0 || index >= messageList.length) {
+// Function to display the current message and update the UI
+function displayMessage(messageIndex) {
+    if (!messageList || messageList.length === 0) {
+        console.warn('No messages to display');
         return;
     }
     
-    // Update current index
-    currentMessageIndex = index;
-    currentIndexSpan.textContent = currentMessageIndex + 1;
-    
-    // Get current message
-    const message = messageList[currentMessageIndex];
-    
-    // Extract role for display
-    let role = '';
-    if (message.author && message.author.role) {
-        role = message.author.role;
-    } else if (message.role) {
-        role = message.role;
+    // Validate messageIndex
+    if (messageIndex < 0) {
+        messageIndex = 0;
+    } else if (messageIndex >= messageList.length) {
+        messageIndex = messageList.length - 1;
     }
     
-    // Update all three containers in the three-message view
-    updateThreeMessageView();
+    currentMessageIndex = messageIndex;
+    document.getElementById('current-index').textContent = messageIndex + 1;
+    
+    // Get the platform for the transcript
+    const platform = transcript.platform || detectPlatformFromTranscript(transcript);
+    
+    // Three-message view (the only view mode we support now)
+    const containers = {
+        previousBox: document.querySelector('.message-box.previous'),
+        currentBox: document.querySelector('.message-box.current'),
+        nextBox: document.querySelector('.message-box.next'),
+        previousMessageContainer: document.getElementById('previous-message-container'),
+        currentMessageContainer: document.getElementById('current-message-container'),
+        nextMessageContainer: document.getElementById('next-message-container')
+    };
+    
+    // Use the platform-specific handler to update the view
+    if (typeof window.updatePlatformThreeMessageView === 'function') {
+        window.updatePlatformThreeMessageView(messageList, messageIndex, transcript, containers);
+    } else {
+        // Fallback to our basic three-message view
+        updateThreeMessageView(messageList, messageIndex, containers);
+    }
     
     // Display metadata for the response message (n+1)
     displayMetadata();
     
     // Add event listeners for the icons and buttons
     setupFindSimilarButtons();
-    setupStarIcons();
-    setupBookmarkIcons();
     setupCopyIcons();
 }
 
@@ -700,80 +712,6 @@ function setupFindSimilarButtons() {
             
             // Don't bubble up to parent elements
             e.stopPropagation();
-        });
-    });
-}
-
-// Set up event listeners for star icons
-function setupStarIcons() {
-    document.querySelectorAll('.star-icon').forEach(icon => {
-        // Get the message index
-        const messageIndex = parseInt(icon.dataset.messageIndex);
-        
-        // Set the initial state based on the data
-        const isStarred = isMessageStarred(messageIndex);
-        const iconElement = icon.querySelector('i');
-        if (isStarred && iconElement) {
-            iconElement.classList.add('starred');
-        } else if (iconElement) {
-            iconElement.classList.remove('starred');
-        }
-        
-        // Remove any existing click event listeners to prevent duplicates
-        const newIcon = icon.cloneNode(true);
-        icon.parentNode.replaceChild(newIcon, icon);
-        
-        newIcon.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            
-            // Get the star icon element (could be the span or the i element)
-            const starIcon = e.target.closest('.star-icon');
-            if (!starIcon) return;
-            
-            const messageIndex = parseInt(starIcon.dataset.messageIndex);
-            if (isNaN(messageIndex)) return;
-            
-            // Toggle star status
-            const isStarred = isMessageStarred(messageIndex);
-            toggleMessageStar(messageIndex, !isStarred);
-        });
-    });
-}
-
-// Set up event listeners for bookmark icons
-function setupBookmarkIcons() {
-    document.querySelectorAll('.bookmark-icon').forEach(icon => {
-        // Get the message index
-        const messageIndex = parseInt(icon.dataset.messageIndex);
-        
-        // Set the initial state based on the data
-        const isBookmarked = isMessageBookmarked(messageIndex);
-        const iconElement = icon.querySelector('i');
-        if (isBookmarked && iconElement) {
-            iconElement.classList.add('bookmarked');
-        } else if (iconElement) {
-            iconElement.classList.remove('bookmarked');
-        }
-        
-        // Remove any existing click event listeners to prevent duplicates
-        const newIcon = icon.cloneNode(true);
-        icon.parentNode.replaceChild(newIcon, icon);
-        
-        newIcon.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            
-            // Get the bookmark icon element (could be the span or the i element)
-            const bookmarkIcon = e.target.closest('.bookmark-icon');
-            if (!bookmarkIcon) return;
-            
-            const messageIndex = parseInt(bookmarkIcon.dataset.messageIndex);
-            if (isNaN(messageIndex)) return;
-            
-            // Toggle bookmark status
-            const isBookmarked = isMessageBookmarked(messageIndex);
-            toggleMessageBookmark(messageIndex, !isBookmarked);
         });
     });
 }

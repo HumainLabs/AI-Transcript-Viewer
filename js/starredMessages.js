@@ -214,8 +214,6 @@ function updateMessageDisplay() {
 // Update bookmarked status on message boxes in three-message view
 function updateMessageBoxBookmarkedStatus() {
     // Three-message view is always active now
-    // REMOVED: if (isSingleView) return;
-    
     // Get container elements
     const previousBox = document.querySelector('.message-box.previous');
     const currentBox = document.querySelector('.message-box.current');
@@ -443,35 +441,4 @@ function copyStarredMessagesToClipboard() {
             console.error('Failed to copy starred messages:', err);
             alert('Failed to copy messages to clipboard. See console for details.');
         });
-}
-
-function setupStarIcons() {
-    const messages = document.querySelectorAll('.message');
-    messages.forEach(message => {
-        // Find or create the star icon container
-        let actionIcons = message.querySelector('.action-icons');
-        if (!actionIcons) {
-            actionIcons = document.createElement('div');
-            actionIcons.className = 'action-icons';
-            
-            // Insert after message-header if it exists, otherwise at the beginning of the message
-            const messageHeader = message.querySelector('.message-header');
-            if (messageHeader) {
-                messageHeader.parentNode.insertBefore(actionIcons, messageHeader.nextSibling);
-            } else {
-                message.insertBefore(actionIcons, message.firstChild);
-            }
-        }
-        
-        // Only add star icons to messages in the three-message view
-        // REMOVED: if (!isSingleView) {
-        // Create star icon
-        let starIcon = actionIcons.querySelector('.star-icon');
-        if (!starIcon) {
-            starIcon = document.createElement('i');
-            starIcon.className = 'star-icon far fa-star';
-            starIcon.title = 'Star this message';
-            actionIcons.appendChild(starIcon);
-        }
-    });
 } 

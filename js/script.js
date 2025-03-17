@@ -5,7 +5,7 @@
  */
 
 import { processTranscript, getPlatformHandler } from './platforms/platform-interface.js';
-import { generateMessageHTML, updateThreeMessageView } from './platforms/display-helper.js';
+import { generateMessageHTML, updateThreeMessageView, setupMessageIcons } from './platforms/display-helper.js';
 import { detectPlatform } from './platforms/platform-utils.js';
 
 // Log that we're using our platform handlers
@@ -45,6 +45,24 @@ window.generatePlatformMessageHTML = generateMessageHTML;
 window.updatePlatformThreeMessageView = updateThreeMessageView;
 window.detectTranscriptPlatform = detectPlatform;
 window.getPlatformHandler = getPlatformHandler;
+window.setupPlatformMessageIcons = setupMessageIcons;
+
+// Integrate with isMessageStarred and toggleMessageStar functions
+document.addEventListener('DOMContentLoaded', () => {
+    // Make sure we have starredMessages.js functions available globally
+    if (typeof isMessageStarred === 'function') {
+        window.isMessageStarred = isMessageStarred;
+    }
+    if (typeof toggleMessageStar === 'function') {
+        window.toggleMessageStar = toggleMessageStar;
+    }
+    if (typeof isMessageBookmarked === 'function') {
+        window.isMessageBookmarked = isMessageBookmarked;
+    }
+    if (typeof toggleMessageBookmark === 'function') {
+        window.toggleMessageBookmark = toggleMessageBookmark;
+    }
+});
 
 // Dispatch event to notify that platform handlers are ready
 document.dispatchEvent(new CustomEvent('platform-handlers-ready', {
@@ -52,9 +70,6 @@ document.dispatchEvent(new CustomEvent('platform-handlers-ready', {
         getPlatformHandler: getPlatformHandler
     }
 }));
-
-// Log initialization completion
-console.log('Platform handlers initialized successfully');
 
 // Main function to process a dropped transcript file
 function processTranscriptFile(file) {

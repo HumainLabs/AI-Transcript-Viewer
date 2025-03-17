@@ -204,7 +204,8 @@ export function updateThreeMessageView(messages, currentIndex, transcript, conta
         // Determine the correct role class to use for the box
         // If it's a tool message that's part of a sequence, use 'assistant' instead
         let boxRoleClass = nextRole.toLowerCase();
-        if (nextSequence && nextRole.toLowerCase() === 'tool' && handler.getMessageRole(nextSequence.primaryMessage).toLowerCase() === 'assistant') {
+        if (nextSequence && nextRole.toLowerCase() === 'tool' && 
+            handler.getMessageRole(nextSequence.primaryMessage).toLowerCase() === 'assistant') {
             boxRoleClass = 'assistant';
         }
         
@@ -352,6 +353,13 @@ export function updateThreeMessageView(messages, currentIndex, transcript, conta
         currentMessageContainer.innerHTML = '<p>No next message</p>';
         nextMessageContainer.innerHTML = '<p>No following message</p>';
     }
+    
+    // Set up message icons and event handlers after rendering
+    if (typeof setupMessageIcons === 'function') {
+        setupMessageIcons();
+    } else if (typeof window.setupPlatformMessageIcons === 'function') {
+        window.setupPlatformMessageIcons();
+    }
 }
 
 /**
@@ -431,4 +439,76 @@ function updateBoxStatus(box, messageIndex) {
     if (typeof isMessageBookmarked === 'function' && isMessageBookmarked(messageIndex)) {
         box.classList.add('bookmarked-message');
     }
+}
+
+/**
+ * After generating HTML and updating the DOM, call this function to set up icon handlers
+ * @param {Object} transcript - The transcript object
+ */
+export function setupMessageIcons() {
+    // Set up star icon click events
+    document.querySelectorAll('.star-icon').forEach(icon => {
+        // Get the message index
+        const messageIndex = parseInt(icon.dataset.messageIndex);
+        if (isNaN(messageIndex)) return;
+        
+        // Set initial state if the isMessageStarred function is available
+        if (typeof window.isMessageStarred === 'function') {
+            const isStarred = window.isMessageStarred(messageIndex);
+            const iconElement = icon.querySelector('i');
+            if (isStarred && iconElement) {
+                iconElement.classList.add('starred');
+            } else if (iconElement) {
+                iconElement.classList.remove('starred');
+            }
+        }
+        
+        // Add click event listener
+        icon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log('Star icon clicked for message', messageIndex);
+            
+            // Call the global toggle function if available
+            if (typeof window.toggleMessageStar === 'function') {
+                const isStarred = typeof window.isMessageStarred === 'function' 
+                    ? window.isMessageStarred(messageIndex) 
+                    : false;
+                window.toggleMessageStar(messageIndex, !isStarred);
+            }
+        });
+    });
+    
+    // Set up bookmark icon click events similarly
+    document.querySelectorAll('.bookmark-icon').forEach(icon => {
+        // Get the message index
+        const messageIndex = parseInt(icon.dataset.messageIndex);
+        if (isNaN(messageIndex)) return;
+        
+        // Set initial state if the isMessageBookmarked function is available
+        if (typeof window.isMessageBookmarked === 'function') {
+            const isBookmarked = window.isMessageBookmarked(messageIndex);
+            const iconElement = icon.querySelector('i');
+            if (isBookmarked && iconElement) {
+                iconElement.classList.add('bookmarked');
+            } else if (iconElement) {
+                iconElement.classList.remove('bookmarked');
+            }
+        }
+        
+        // Add click event listener
+        icon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log('Bookmark icon clicked for message', messageIndex);
+            
+            // Call the global toggle function if available
+            if (typeof window.toggleMessageBookmark === 'function') {
+                const isBookmarked = typeof window.isMessageBookmarked === 'function' 
+                    ? window.isMessageBookmarked(messageIndex) 
+                    : false;
+                window.toggleMessageBookmark(messageIndex, !isBookmarked);
+            }
+        });
+    });
 } 
